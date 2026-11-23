@@ -32,3 +32,18 @@ def test_fallo_2_contrasenas_hasheadas_en_db(client):
     assert user is not None
     assert user["password"] != raw_password
     assert check_password_hash(user["password"], raw_password) is True
+
+def test_fallo_3_rechazo_comentarios_vacios(client):
+    from app.main import get_db_connection
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO posts (title, content, author) VALUES (?, ?, ?)", ("Entrada de Prueba", "Contenido", "autor_prueba"))
+    post_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    response = client.post(f"/post/{post_id}", data={"content": "     "})
+    assert response.status_code == 400
+    conn = get_db_connection()
+    count = conn.execute("SELECT COUNT(*) as total FROM comments WHERE post_id = ?", (post_id,)).fetchone()["total"]
+    conn.close()
+    assert count == 0
