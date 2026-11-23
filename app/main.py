@@ -2,6 +2,7 @@ import os
 import sqlite3
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort
+from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv()
 
@@ -43,7 +44,8 @@ def register():
         password = request.form.get("password", "")
         conn = get_db_connection()
         try:
-            conn.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+            hashed_password = generate_password_hash(password)
+            conn.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
             conn.commit()
             return redirect(url_for("login"))
         except sqlite3.IntegrityError:
@@ -58,9 +60,9 @@ def login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         conn = get_db_connection()
-        user = conn.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password)).fetchone()
+        user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
         conn.close()
-        if user:
+        if user and check_password_hash(user["password"], password):
             session["username"] = user["username"]
             return redirect(url_for("index"))
         return "Credenciales inválidas", 401
