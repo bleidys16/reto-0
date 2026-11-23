@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Entradas del Blog</h1>
+    {% if posts %}
+        {% for post in posts %}
+            <div class="post-card">
+                <h2><a href="{{ url_for('post_detail', post_id=post.id) }}">{{ post.title }}</a></h2>
+                <p class="meta">Por {{ post.author }}</p>
+                <p>{{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}</p>
+                <a href="{{ url_for('post_detail', post_id=post.id) }}">Leer más y comentar &rarr;</a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No hay entradas publicadas aún. {% if session.get('username') %}<a href="{{ url_for('new_post') }}">Publica la primera</a>{% endif %}</p>
+    {% endif %}
+{% endblock %}

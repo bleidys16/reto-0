@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Blog con Comentarios{% endblock %}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #f8fafc; color: #1e293b; }
+        .container { max-width: 800px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        nav { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+        nav a { color: #2563eb; text-decoration: none; margin-left: 15px; font-weight: 500; }
+        nav a:hover { text-decoration: underline; }
+        .btn { display: inline-block; background: #2563eb; color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none; border: none; cursor: pointer; }
+        .btn:hover { background: #1d4ed8; }
+        .post-card { border-bottom: 1px solid #e2e8f0; padding: 15px 0; }
+        .post-card:last-child { border-bottom: none; }
+        .comment { background: #f1f5f9; padding: 10px 15px; border-radius: 6px; margin-top: 10px; }
+        .meta { font-size: 0.85em; color: #64748b; }
+        input[type="text"], input[type="password"], textarea { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <div>
+                <a href="{{ url_for('index') }}" style="font-weight: bold; font-size: 1.2em; margin-left: 0;">Mi Blog</a>
+            </div>
+            <div>
+                {% if session.get('username') %}
+                    <span>Hola, <strong>{{ session.get('username') }}</strong></span>
+                    <a href="{{ url_for('new_post') }}">Nueva Entrada</a>
+                    <a href="{{ url_for('logout') }}">Cerrar Sesión</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">Iniciar Sesión</a>
+                    <a href="{{ url_for('register') }}">Registrarse</a>
+                {% endif %}
+            </div>
+        </nav>
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

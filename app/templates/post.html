@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <article>
+        <h1>{{ post.title }}</h1>
+        <p class="meta">Publicado por <strong>{{ post.author }}</strong></p>
+        <div style="line-height: 1.6; margin: 20px 0;">
+            {{ post.content }}
+        </div>
+    </article>
+
+    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+
+    <section>
+        <h3>Comentarios ({{ comments|length }})</h3>
+        {% if comments %}
+            {% for c in comments %}
+                <div class="comment">
+                    <p class="meta"><strong>{{ c.author }}</strong> comentó:</p>
+                    <p style="margin: 5px 0;">{{ c.content }}</p>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="meta">No hay comentarios en esta entrada aún.</p>
+        {% endif %}
+
+        <h4 style="margin-top: 30px;">Deja tu comentario</h4>
+        <form method="POST">
+            <textarea name="content" rows="3" placeholder="Escribe tu comentario aquí..."></textarea>
+            <button type="submit" class="btn">Publicar comentario</button>
+        </form>
+    </section>
+{% endblock %}
