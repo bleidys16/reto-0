@@ -1,0 +1,8 @@
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = ["capturas", "*.png", "generate_*.py", "execute_*.py", "capture_*.py", "rebuild_*.py", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]
