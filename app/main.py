@@ -7,7 +7,12 @@ load_dotenv()
 
 app = Flask(__name__)
 # Lectura segura desde entorno (desacoplada de codigo)
-app.secret_key = os.environ.get("SECRET_KEY", "fallback_dev_key_only_for_tests")
+_env_key = os.environ.get("SECRET_KEY", "")
+if len(_env_key) >= 50 and _env_key not in ("super_secret_vibe_key_12345", "fallback_dev_key_only_for_tests"):
+    app.secret_key = _env_key
+else:
+    import secrets
+    app.secret_key = secrets.token_hex(32)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "blog.db")
 
