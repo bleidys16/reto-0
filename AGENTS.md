@@ -27,3 +27,6 @@ Aplicación web en Python para publicar entradas y gestionar comentarios de usua
 ## Lecciones aprendidas
 - Las variables de entorno son indispensables para desacoplar configuración y secretos.
 - Mantener una red de seguridad (humo + ruff) previene regresiones antes de commitear.
+- Fallo 1: Las claves de sesión deben validarse estrictamente contra secretos quemados y requerir alta entropía criptográfica (>= 50 caracteres) o generación dinámica segura.
+- Fallo 2: Las contraseñas nunca deben guardarse en texto plano; deben transformarse con algoritmos seguros de hashing unidireccional y salt (Werkzeug security).
+- Fallo 3: Toda entrada de formulario (comentarios) debe validarse y sanitizarse en backend, rechazando cadenas vacías o espacios con código HTTP 400.

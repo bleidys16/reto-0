@@ -1,13 +1,20 @@
 import os
+import secrets
 import sqlite3
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort
+from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv()
 
 app = Flask(__name__)
-# Lectura segura desde entorno (desacoplada de codigo)
-app.secret_key = os.environ.get("SECRET_KEY", "fallback_dev_key_only_for_tests")
+
+# Lectura segura de clave secreta con validación y alta entropía criptográfica
+_env_key = os.environ.get("SECRET_KEY", "")
+if len(_env_key) >= 50 and _env_key not in ("super_secret_vibe_key_12345", "fallback_dev_key_only_for_tests"):
+    app.secret_key = _env_key
+else:
+    app.secret_key = secrets.token_hex(32)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "blog.db")
 
@@ -19,9 +26,30 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, content TEXT NOT NULL, author TEXT NOT NULL)''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER NOT NULL, author TEXT NOT NULL, content TEXT NOT NULL, FOREIGN KEY (post_id) REFERENCES posts (id))''')
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            author TEXT NOT NULL
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            author TEXT NOT NULL,
+            content TEXT NOT NULL,
+            FOREIGN KEY (post_id) REFERENCES posts (id)
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -37,9 +65,15 @@ def register():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
+
         conn = get_db_connection()
         try:
-            conn.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+            # Corrección Fallo 2: Hashing seguro con salt
+            hashed_password = generate_password_hash(password)
+            conn.execute(
+                "INSERT INTO users (username, password) VALUES (?, ?)",
+                (username, hashed_password)
+            )
             conn.commit()
             return redirect(url_for("login"))
         except sqlite3.IntegrityError:
@@ -53,10 +87,16 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
+
         conn = get_db_connection()
-        user = conn.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password)).fetchone()
+        user = conn.execute(
+            "SELECT * FROM users WHERE username = ?",
+            (username,)
+        ).fetchone()
         conn.close()
-        if user:
+
+        # Corrección Fallo 2: Verificación criptográfica segura de contraseña
+        if user and check_password_hash(user["password"], password):
             session["username"] = user["username"]
             return redirect(url_for("index"))
         return "Credenciales inválidas", 401
@@ -75,7 +115,10 @@ def new_post():
         title = request.form.get("title", "").strip()
         content = request.form.get("content", "").strip()
         conn = get_db_connection()
-        conn.execute("INSERT INTO posts (title, content, author) VALUES (?, ?, ?)", (title, content, session["username"]))
+        conn.execute(
+            "INSERT INTO posts (title, content, author) VALUES (?, ?, ?)",
+            (title, content, session["username"])
+        )
         conn.commit()
         conn.close()
         return redirect(url_for("index"))
@@ -88,11 +131,21 @@ def post_detail(post_id):
     if not post:
         conn.close()
         abort(404)
+
     if request.method == "POST":
-        content = request.form.get("content")
+        # Corrección Fallo 3: Validación estricta de contenido de comentarios
+        content = request.form.get("content", "").strip()
+        if not content:
+            conn.close()
+            abort(400)
+
         author = session.get("username", "Anónimo")
-        conn.execute("INSERT INTO comments (post_id, author, content) VALUES (?, ?, ?)", (post_id, author, content))
+        conn.execute(
+            "INSERT INTO comments (post_id, author, content) VALUES (?, ?, ?)",
+            (post_id, author, content)
+        )
         conn.commit()
+
     comments = conn.execute("SELECT * FROM comments WHERE post_id = ? ORDER BY id ASC", (post_id,)).fetchall()
     conn.close()
     return render_template("post.html", post=post, comments=comments)
